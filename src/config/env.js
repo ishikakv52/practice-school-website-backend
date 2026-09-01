@@ -21,10 +21,17 @@ const env = {
 
   db: {
     host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || "3306", 10),
+    port: parseInt(process.env.DB_PORT || "5432", 10),
     name: process.env.DB_NAME,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
+    // Aiven (and most managed Postgres hosts) require SSL. Defaults to on
+    // in production so Render deployments work without an extra var, but
+    // can be forced either way with DB_SSL=true / DB_SSL=false.
+    ssl:
+      process.env.DB_SSL != null
+        ? process.env.DB_SSL === "true"
+        : process.env.NODE_ENV === "production",
   },
 
   corsOrigin: process.env.CORS_ORIGIN || "http://localhost:3000",

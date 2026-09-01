@@ -1,41 +1,59 @@
--- Run this once against your MySQL database to create the tables this
--- phase needs. Later phases will add more tables (events, news, notices,
--- gallery, teachers, students, users, payments) in the same style.
+-- Run this once against your PostgreSQL database (e.g. Aiven's
+-- `defaultdb`) to create the tables this phase needs. Later phases will
+-- add more tables (events, news, notices, gallery, teachers, students,
+-- payments) in the same style.
 --
---   mysql -u root -p school_website < backend/src/config/schema.sql
+--   psql "postgresql://USER:PASSWORD@HOST:PORT/DBNAME?sslmode=require" \
+--     -f backend/src/config/schema.sql
 
-CREATE DATABASE IF NOT EXISTS school_website
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE school_website;
+-- Shared trigger function: keeps updated_at current on every UPDATE,
+-- since Postgres has no built-in "ON UPDATE CURRENT_TIMESTAMP" like MySQL.
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 CREATE TABLE IF NOT EXISTS users (
-  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'teacher', 'student', 'parent') NOT NULL DEFAULT 'admin',
+  role VARCHAR(20) NOT NULL DEFAULT 'admin'
+    CHECK (role IN ('admin', 'teacher', 'student', 'parent')),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+);
+
+DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
+CREATE TRIGGER trg_users_updated_at
+  BEFORE UPDATE ON users
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE IF NOT EXISTS enquiries (
-  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
   email VARCHAR(255) NOT NULL,
   subject VARCHAR(200) NOT NULL,
   message TEXT NOT NULL,
-  status ENUM('new', 'read', 'responded') NOT NULL DEFAULT 'new',
+  status VARCHAR(20) NOT NULL DEFAULT 'new'
+    CHECK (status IN ('new', 'read', 'responded')),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_enquiries_status (status),
-  INDEX idx_enquiries_created_at (created_at)
-) ENGINE=InnoDB;
+);
+
+DROP TRIGGER IF EXISTS trg_enquiries_updated_at ON enquiries;
+CREATE TRIGGER trg_enquiries_updated_at
+  BEFORE UPDATE ON enquiries
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_enquiries_status ON enquiries (status);
+CREATE INDEX IF NOT EXISTS idx_enquiries_created_at ON enquiries (created_at);
 
 CREATE TABLE IF NOT EXISTS admissions (
-  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   student_name VARCHAR(150) NOT NULL,
   date_of_birth DATE NOT NULL,
   grade_applied VARCHAR(50) NOT NULL,
@@ -43,11 +61,16 @@ CREATE TABLE IF NOT EXISTS admissions (
   phone VARCHAR(20) NOT NULL,
   email VARCHAR(255) NOT NULL,
   message TEXT NULL,
-  status ENUM('pending', 'under_review', 'accepted', 'rejected')
-    NOT NULL DEFAULT 'pending',
+  status VARCHAR(20) NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'under_review', 'accepted', 'rejected')),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_admissions_status (status),
-  INDEX idx_admissions_created_at (created_at)
-) ENGINE=InnoDB;
+);
+
+DROP TRIGGER IF EXISTS trg_admissions_updated_at ON admissions;
+CREATE TRIGGER trg_admissions_updated_at
+  BEFORE UPDATE ON admissions
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_admissions_status ON admissions (status);
+CREATE INDEX IF NOT EXISTS idx_admissions_created_at ON admissions (created_at);

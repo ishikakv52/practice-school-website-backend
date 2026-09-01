@@ -6,7 +6,7 @@ async function start() {
   const dbConnected = await checkConnection();
   if (!dbConnected) {
     console.warn(
-      "[server] Starting without a confirmed MySQL connection — " +
+      "[server] Starting without a confirmed database connection — " +
         "check backend/.env, then GET /api/health once the server is up."
     );
   }

@@ -1,20 +1,28 @@
-// MySQL connection pool. Everything queries through this pool using
-// parameterized queries (`pool.execute(sql, params)`) — never build SQL
+// PostgreSQL connection pool. Everything queries through this pool using
+// parameterized queries (`pool.query(sql, params)`) — never build SQL
 // by string-concatenating user input.
 
-const mysql = require("mysql2/promise");
+const { Pool } = require("pg");
 const env = require("./env");
 
-const pool = mysql.createPool({
+const pool = new Pool({
   host: env.db.host,
   port: env.db.port,
   database: env.db.name,
   user: env.db.user,
   password: env.db.password,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  dateStrings: true,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  // Aiven's free-tier certificate isn't in Node's default CA bundle, so
+  // rejectUnauthorized is left false. Swap this for a proper CA cert
+  // (Aiven gives you one to download) if you want full certificate
+  // verification instead.
+  ssl: env.db.ssl ? { rejectUnauthorized: false } : false,
+});
+
+pool.on("error", (err) => {
+  // Fired for idle clients that error in the background — log, don't crash.
+  console.error("[db] Unexpected error on idle client:", err.message);
 });
 
 /**
@@ -23,9 +31,9 @@ const pool = mysql.createPool({
  */
 async function checkConnection() {
   try {
-    const conn = await pool.getConnection();
-    await conn.ping();
-    conn.release();
+    const client = await pool.connect();
+    await client.query("SELECT 1");
+    client.release();
     return true;
   } catch (err) {
     console.error("[db] Connection check failed:", err.message);

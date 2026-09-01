@@ -5,7 +5,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const router = express.Router();
 
 // GET /api/health — used to confirm the backend is running and can
-// reach MySQL. Handy for local setup and for a future uptime check.
+// reach the database. Handy for local setup and for a future uptime check.
 router.get(
   "/",
   asyncHandler(async (req, res) => {
