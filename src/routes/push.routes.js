@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { pool } = require("../config/db");  
+const { pool } = require("../config/db");  // ✅ destructured
 const webpush = require("../config/webpush");
 
 router.post("/subscribe", async (req, res) => {
