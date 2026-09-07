@@ -1,6 +1,7 @@
 const admissionService = require("../services/admission.service");
 const { validateAdmission } = require("../utils/validators");
 const { ApiError } = require("../middleware/errorHandler");
+const { notifyAdmins } = require("../services/pushService");
 
 async function submit(req, res) {
   const errors = validateAdmission(req.body);
@@ -20,6 +21,12 @@ async function submit(req, res) {
     email,
     message,
   });
+
+  // Admin ko push notify — fire-and-forget, response ko block nahi karega
+  notifyAdmins(
+    "New Admission Application",
+    `${studentName} — Grade ${gradeApplied}`
+  ).catch((err) => console.error("Push notify failed:", err));
 
   res.status(201).json({
     success: true,

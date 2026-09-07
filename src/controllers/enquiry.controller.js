@@ -1,6 +1,7 @@
 const enquiryService = require("../services/enquiry.service");
 const { validateEnquiry } = require("../utils/validators");
 const { ApiError } = require("../middleware/errorHandler");
+const { notifyAdmins } = require("../services/pushService");
 
 async function submit(req, res) {
   const errors = validateEnquiry(req.body);
@@ -10,6 +11,11 @@ async function submit(req, res) {
 
   const { name, email, subject, message } = req.body;
   const enquiry = await enquiryService.submitEnquiry({ name, email, subject, message });
+
+  // Admin ko push notify — fire-and-forget, response ko block nahi karega
+  notifyAdmins("New Enquiry Received", `From: ${name} — ${subject}`).catch((err) =>
+    console.error("Push notify failed:", err)
+  );
 
   res.status(201).json({
     success: true,

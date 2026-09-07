@@ -8,14 +8,17 @@ const healthRoutes = require("./health.routes");
 const enquiriesRoutes = require("./enquiries.routes");
 const admissionsRoutes = require("./admissions.routes");
 const authRoutes = require("./auth.routes");
-
+const pushRoutes = require("./push.routes");
+const announcementsRoutes = require("./announcements.routes");
 const router = express.Router();
+
 
 router.use("/health", healthRoutes);
 router.use("/auth", authRoutes);
 router.use("/enquiries", enquiriesRoutes);
 router.use("/admissions", admissionsRoutes);
-
+router.use("/push", pushRoutes);
+router.use("/announcements", announcementsRoutes);
 // Later phases will add, e.g.:
 // router.use("/notices", require("./notices.routes"));
 // router.use("/events", require("./events.routes"));
