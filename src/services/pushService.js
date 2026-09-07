@@ -1,4 +1,4 @@
-const pool = require("../db");
+const { pool } = require("../config/db");  // ✅ destructured
 const webpush = require("../config/webpush");
 
 async function sendToSubscriptions(subscriptions, title, body) {

@@ -1,4 +1,4 @@
-const pool = require("../db");
+const { pool } = require("../config/db");
 
 async function createAnnouncement({ title, message }) {
   const { rows } = await pool.query(

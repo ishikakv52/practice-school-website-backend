@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../db"); // apna existing pg pool import karo — path check kar lena
+const { pool } = require("../config/db");  
 const webpush = require("../config/webpush");
 
 router.post("/subscribe", async (req, res) => {
