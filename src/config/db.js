@@ -1,7 +1,6 @@
 // PostgreSQL connection pool. Everything queries through this pool using
 // parameterized queries (`pool.query(sql, params)`) — never build SQL
 // by string-concatenating user input.
-
 const { Pool } = require("pg");
 const env = require("./env");
 
@@ -13,6 +12,7 @@ const pool = new Pool({
   password: env.db.password,
   max: 10,
   idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
   // Aiven's free-tier certificate isn't in Node's default CA bundle, so
   // rejectUnauthorized is left false. Swap this for a proper CA cert
   // (Aiven gives you one to download) if you want full certificate
