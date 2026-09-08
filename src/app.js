@@ -3,6 +3,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 
 const env = require("./config/env");
 const apiRoutes = require("./routes");
@@ -22,6 +23,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
+
+app.use(express.static(path.join(__dirname, "../public")));
 
 // --- API routes ---
 app.use("/api", apiRoutes);

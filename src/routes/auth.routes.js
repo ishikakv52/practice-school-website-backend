@@ -15,6 +15,15 @@ const loginLimiter = rateLimit({
   message: { success: false, error: { message: "Too many login attempts. Try again later." } },
 });
 
+const signupLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: { message: "Too many signup attempts. Try again later." } },
+});
+
+router.post("/signup", signupLimiter, asyncHandler(controller.signup));
 router.post("/login", loginLimiter, asyncHandler(controller.login));
 router.post("/logout", controller.logout);
 router.get("/me", requireAuth, asyncHandler(controller.me));

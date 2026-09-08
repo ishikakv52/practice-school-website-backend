@@ -10,13 +10,38 @@ async function hashPassword(plain) {
   return bcrypt.hash(plain, SALT_ROUNDS);
 }
 
+async function signup({ name, email, password, role }) {
+  if (!['parent', 'student'].includes(role)) {
+    throw new ApiError(400, 'Signup is available for parents and students only');
+  }
+
+  const existingUser = await userModel.findByEmail(email);
+  if (existingUser) {
+    throw new ApiError(409, 'An account with this email already exists');
+  }
+
+  try {
+    return await userModel.createUser({
+      name,
+      email,
+      passwordHash: await hashPassword(password),
+      role,
+    });
+  } catch (err) {
+    if (err.code === '23505') {
+      throw new ApiError(409, 'An account with this email already exists');
+    }
+    throw err;
+  }
+}
+
 /**
  * Verifies email/password and returns a signed JWT + safe user object.
  * Throws a generic 401 on any failure so we never reveal whether the
  * email exists (standard practice against user enumeration).
  */
 async function login(email, password) {
-  const user = await userModel.findByEmail(email);
+  const user = await userModel.findByEmail(email.toLowerCase());
   if (!user) {
     throw new ApiError(401, "Invalid email or password");
   }
@@ -42,4 +67,4 @@ async function login(email, password) {
   };
 }
 
-module.exports = { hashPassword, login };
+module.exports = { hashPassword, login, signup };
