@@ -78,4 +78,21 @@ async function sendOtpEmail({ to, code, purpose = "verification" }) {
   });
 }
 
-module.exports = { sendMail, sendAdmissionConfirmation, sendOtpEmail };
+async function sendAnnouncementEmail({ to, title, message }) {
+  return sendMail({
+    to,
+    subject: `School announcement: ${title}`,
+    html: `
+      <h2>${title}</h2>
+      <p>${message}</p>
+      <p>— Sunrise Public School</p>
+    `,
+  });
+}
+
+module.exports = {
+  sendMail,
+  sendAdmissionConfirmation,
+  sendAnnouncementEmail,
+  sendOtpEmail,
+};

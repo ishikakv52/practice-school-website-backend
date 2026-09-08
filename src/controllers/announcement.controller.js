@@ -1,5 +1,7 @@
 const announcementService = require("../services/announcement.service");
 const { notifyParentsAndStudents } = require("../services/pushService");
+const userModel = require("../models/user.model");
+const emailService = require("../services/email.service");
 const { ApiError } = require("../middleware/errorHandler");
 
 async function send(req, res) {
@@ -15,6 +17,15 @@ async function send(req, res) {
   notifyParentsAndStudents(title, message).catch((err) =>
     console.error("Push notify failed:", err)
   );
+
+  userModel
+    .listParentStudentEmails()
+    .then((emails) =>
+      Promise.all(
+        emails.map((to) => emailService.sendAnnouncementEmail({ to, title, message }))
+      )
+    )
+    .catch((err) => console.error("Announcement email notify failed:", err));
 
   res.status(201).json({
     success: true,

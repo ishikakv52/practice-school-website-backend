@@ -13,6 +13,14 @@ async function findById(id) {
   return rows[0] || null;
 }
 
+async function listParentStudentEmails() {
+  const { rows } = await pool.query(
+    `SELECT email FROM users
+     WHERE role IN ('parent', 'student') AND email IS NOT NULL`
+  );
+  return rows.map((row) => row.email);
+}
+
 async function createUser({ name, email, passwordHash, role = "admin" }) {
   const { rows } = await pool.query(
     `INSERT INTO users (name, email, password_hash, role)
@@ -23,4 +31,4 @@ async function createUser({ name, email, passwordHash, role = "admin" }) {
   return { id: rows[0].id, name, email, role };
 }
 
-module.exports = { findByEmail, findById, createUser };
+module.exports = { findByEmail, findById, listParentStudentEmails, createUser };
