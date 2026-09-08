@@ -19,18 +19,7 @@ async function submitAdmission(data) {
     });
   }
 
-  await emailService.sendMail({
-    to: admission.email,
-    subject: "Application received — Sunrise Public School",
-    html: `
-      <p>Dear ${admission.parentName},</p>
-      <p>We've received the admission application for
-      <strong>${admission.studentName}</strong> for
-      <strong>${admission.gradeApplied}</strong>. Our admissions team will
-      review it and contact you shortly.</p>
-      <p>— Sunrise Public School</p>
-    `,
-  });
+  await emailService.sendAdmissionConfirmation(admission);
 
   return admission;
 }

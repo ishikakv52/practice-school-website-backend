@@ -49,4 +49,33 @@ async function sendMail({ to, subject, html }) {
   }
 }
 
-module.exports = { sendMail };
+async function sendAdmissionConfirmation(admission) {
+  return sendMail({
+    to: admission.email,
+    subject: "Application received — Sunrise Public School",
+    html: `
+      <p>Dear ${admission.parentName},</p>
+      <p>We've received the admission application for
+      <strong>${admission.studentName}</strong> for
+      <strong>${admission.gradeApplied}</strong>. Our admissions team will
+      review it and contact you shortly.</p>
+      <p>— Sunrise Public School</p>
+    `,
+  });
+}
+
+async function sendOtpEmail({ to, code, purpose = "verification" }) {
+  const purposeText = purpose === "password_reset" ? "password reset" : "email verification";
+
+  return sendMail({
+    to,
+    subject: `Your Sunrise Public School ${purposeText} code`,
+    html: `
+      <p>Your ${purposeText} code is:</p>
+      <p><strong>${code}</strong></p>
+      <p>This code expires soon. If you did not request it, you can ignore this email.</p>
+    `,
+  });
+}
+
+module.exports = { sendMail, sendAdmissionConfirmation, sendOtpEmail };
