@@ -2,6 +2,7 @@ const admissionService = require("../services/admission.service");
 const { validateAdmission } = require("../utils/validators");
 const { ApiError } = require("../middleware/errorHandler");
 const { notifyAdmins } = require("../services/pushService");
+const { sendAdmissionConfirmation } = require("../services/email.service");
 
 async function submit(req, res) {
   const errors = validateAdmission(req.body);
@@ -27,6 +28,14 @@ async function submit(req, res) {
     "New Admission Application",
     `${studentName} — Grade ${gradeApplied}`
   ).catch((err) => console.error("Push notify failed:", err));
+
+  // Parent ko confirmation email — fire-and-forget
+  sendAdmissionConfirmation({
+    email,
+    parentName,
+    studentName,
+    gradeApplied,
+  }).catch((err) => console.error("Admission email failed:", err));
 
   res.status(201).json({
     success: true,
