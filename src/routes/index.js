@@ -10,6 +10,9 @@ const admissionsRoutes = require("./admissions.routes");
 const authRoutes = require("./auth.routes");
 const pushRoutes = require("./push.routes");
 const announcementsRoutes = require("./announcements.routes");
+const classesRoutes = require("./classes.routes");
+const studentsRoutes = require("./students.routes");
+const attendanceRoutes = require("./attendance.routes");
 const router = express.Router();
 
 
@@ -19,13 +22,14 @@ router.use("/enquiries", enquiriesRoutes);
 router.use("/admissions", admissionsRoutes);
 router.use("/push", pushRoutes);
 router.use("/announcements", announcementsRoutes);
+router.use("/classes", classesRoutes);
+router.use("/students", studentsRoutes);
+router.use("/attendance", attendanceRoutes);
 // Later phases will add, e.g.:
 // router.use("/notices", require("./notices.routes"));
 // router.use("/events", require("./events.routes"));
 // router.use("/news", require("./news.routes"));
 // router.use("/gallery", require("./gallery.routes"));
-// router.use("/teachers", require("./teachers.routes"));
-// router.use("/students", require("./students.routes"));
 // router.use("/payments", require("./payments.routes"));
 // router.use("/chat", require("./chat.routes"));
 

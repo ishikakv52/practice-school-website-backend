@@ -83,3 +83,64 @@ CREATE INDEX IF NOT EXISTS idx_admissions_created_at ON admissions (created_at);
 
 -- 2026-09: allow admin to deactivate staff accounts without deleting them.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- 2026-09: Attendance feature — classes, students, teacher-class assignment, attendance records.
+CREATE TABLE IF NOT EXISTS classes (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(50) NOT NULL,
+  section VARCHAR(10) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (name, section)
+);
+
+DROP TRIGGER IF EXISTS trg_classes_updated_at ON classes;
+CREATE TRIGGER trg_classes_updated_at
+  BEFORE UPDATE ON classes
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE IF NOT EXISTS students (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  roll_number VARCHAR(20) NULL,
+  class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE RESTRICT,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP TRIGGER IF EXISTS trg_students_updated_at ON students;
+CREATE TRIGGER trg_students_updated_at
+  BEFORE UPDATE ON students
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_students_class_id ON students (class_id);
+
+CREATE TABLE IF NOT EXISTS teacher_classes (
+  id SERIAL PRIMARY KEY,
+  teacher_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (teacher_id, class_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_teacher_classes_teacher_id ON teacher_classes (teacher_id);
+CREATE INDEX IF NOT EXISTS idx_teacher_classes_class_id ON teacher_classes (class_id);
+
+CREATE TABLE IF NOT EXISTS attendance (
+  id SERIAL PRIMARY KEY,
+  student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  status VARCHAR(10) NOT NULL CHECK (status IN ('present', 'absent', 'late')),
+  marked_by INTEGER NOT NULL REFERENCES users(id),
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (student_id, date)
+);
+
+DROP TRIGGER IF EXISTS trg_attendance_updated_at ON attendance;
+CREATE TRIGGER trg_attendance_updated_at
+  BEFORE UPDATE ON attendance
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_attendance_class_date ON attendance (class_id, date);
