@@ -144,3 +144,18 @@ CREATE TRIGGER trg_attendance_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE INDEX IF NOT EXISTS idx_attendance_class_date ON attendance (class_id, date);
+
+CREATE TABLE IF NOT EXISTS fees (
+  id SERIAL PRIMARY KEY,
+  student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+  amount NUMERIC(10,2) NOT NULL,
+  description VARCHAR(255) DEFAULT 'School Fee',
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  razorpay_order_id VARCHAR(100),
+  razorpay_payment_id VARCHAR(100),
+  paid_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_fees_student ON fees(student_id);
