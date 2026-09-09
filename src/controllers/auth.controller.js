@@ -44,6 +44,25 @@ async function signup(req, res) {
   res.status(201).json({ success: true, data: { user } });
 }
 
+async function createAccount(req, res) {
+  const name = req.body.name?.trim();
+  const email = req.body.email?.trim().toLowerCase();
+  const { password, role } = req.body;
+
+  if (!name || !email || !password || !role) {
+    throw new ApiError(400, "Name, email, password, and role are required");
+  }
+  if (name.length > 150 || email.length > 255) {
+    throw new ApiError(400, "Name or email is too long");
+  }
+  if (password.length < 8) {
+    throw new ApiError(400, "Password must be at least 8 characters");
+  }
+
+  const user = await authService.adminCreateAccount({ name, email, password, role });
+  res.status(201).json({ success: true, data: { user } });
+}
+
 function logout(req, res) {
   res.clearCookie(env.jwt.cookieName, { ...COOKIE_OPTIONS, maxAge: undefined });
   res.json({ success: true, data: null });
@@ -57,4 +76,4 @@ async function me(req, res) {
   res.json({ success: true, data: { user } });
 }
 
-module.exports = { login, logout, me, signup };
+module.exports = { login, logout, me, signup, createAccount };

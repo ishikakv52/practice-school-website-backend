@@ -32,6 +32,12 @@ CREATE TRIGGER trg_users_updated_at
   BEFORE UPDATE ON users
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+-- 2026-09: allow admin-created Teacher / Principal / Staff accounts.
+-- Idempotent — safe to re-run.
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check
+  CHECK (role IN ('admin', 'teacher', 'principal', 'staff', 'student', 'parent'));
+
 CREATE TABLE IF NOT EXISTS enquiries (
   id SERIAL PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
