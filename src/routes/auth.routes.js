@@ -33,5 +33,23 @@ router.post(
   requireRole("admin"),
   asyncHandler(controller.createAccount)
 );
+router.get(
+  "/admin/accounts",
+  requireAuth,
+  requireRole("admin"),
+  asyncHandler(controller.listAccounts)
+);
+router.patch(
+  "/admin/accounts/:id",
+  requireAuth,
+  requireRole("admin"),
+  asyncHandler(controller.updateAccount)
+);
+router.patch(
+  "/admin/accounts/:id/status",
+  requireAuth,
+  requireRole("admin"),
+  asyncHandler(controller.setAccountStatus)
+);
 
 module.exports = router;

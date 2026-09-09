@@ -80,3 +80,6 @@ CREATE TRIGGER trg_admissions_updated_at
 
 CREATE INDEX IF NOT EXISTS idx_admissions_status ON admissions (status);
 CREATE INDEX IF NOT EXISTS idx_admissions_created_at ON admissions (created_at);
+
+-- 2026-09: allow admin to deactivate staff accounts without deleting them.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;

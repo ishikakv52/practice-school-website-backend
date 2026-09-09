@@ -49,6 +49,50 @@ async function adminCreateAccount({ name, email, password, role }) {
   return createAccountWithRole({ name, email, password, role });
 }
 
+async function adminListAccounts() {
+  return userModel.listStaffAccounts();
+}
+
+async function adminUpdateAccount(id, { name, email, role }) {
+  if (!ADMIN_CREATABLE_ROLES.includes(role)) {
+    throw new ApiError(400, `Role must be one of: ${ADMIN_CREATABLE_ROLES.join(', ')}`);
+  }
+
+  const existing = await userModel.findStaffAccountById(id);
+  if (!existing) {
+    throw new ApiError(404, 'Account not found');
+  }
+
+  if (email !== existing.email) {
+    const emailTaken = await userModel.findByEmail(email);
+    if (emailTaken) {
+      throw new ApiError(409, 'An account with this email already exists');
+    }
+  }
+
+  try {
+    return await userModel.updateStaffAccount(id, { name, email, role });
+  } catch (err) {
+    if (err.code === '23505') {
+      throw new ApiError(409, 'An account with this email already exists');
+    }
+    throw err;
+  }
+}
+
+async function adminSetAccountStatus(id, isActive) {
+  const existing = await userModel.findStaffAccountById(id);
+  if (!existing) {
+    throw new ApiError(404, 'Account not found');
+  }
+  return userModel.setStaffAccountActive(id, isActive);
+}
+
+/**
+ * Verifies email/password and returns a signed JWT + safe user object.
+ * Throws a generic 401 on any failure so we never reveal whether the
+ * email exists (standard practice against user enumeration).
+ */
 async function login(email, password) {
   const user = await userModel.findByEmail(email.toLowerCase());
   if (!user) {
@@ -58,6 +102,10 @@ async function login(email, password) {
   const matches = await bcrypt.compare(password, user.password_hash);
   if (!matches) {
     throw new ApiError(401, "Invalid email or password");
+  }
+
+  if (user.is_active === false) {
+    throw new ApiError(403, "This account has been deactivated. Contact the school administrator.");
   }
 
   if (!env.jwt.secret) {
@@ -76,4 +124,12 @@ async function login(email, password) {
   };
 }
 
-module.exports = { hashPassword, login, signup, adminCreateAccount };
+module.exports = {
+  hashPassword,
+  login,
+  signup,
+  adminCreateAccount,
+  adminListAccounts,
+  adminUpdateAccount,
+  adminSetAccountStatus,
+};

@@ -63,6 +63,37 @@ async function createAccount(req, res) {
   res.status(201).json({ success: true, data: { user } });
 }
 
+async function listAccounts(req, res) {
+  const accounts = await authService.adminListAccounts();
+  res.json({ success: true, data: accounts });
+}
+
+async function updateAccount(req, res) {
+  const name = req.body.name?.trim();
+  const email = req.body.email?.trim().toLowerCase();
+  const { role } = req.body;
+
+  if (!name || !email || !role) {
+    throw new ApiError(400, "Name, email, and role are required");
+  }
+  if (name.length > 150 || email.length > 255) {
+    throw new ApiError(400, "Name or email is too long");
+  }
+
+  const account = await authService.adminUpdateAccount(req.params.id, { name, email, role });
+  res.json({ success: true, data: account });
+}
+
+async function setAccountStatus(req, res) {
+  const { isActive } = req.body;
+  if (typeof isActive !== "boolean") {
+    throw new ApiError(400, "isActive must be true or false");
+  }
+
+  const account = await authService.adminSetAccountStatus(req.params.id, isActive);
+  res.json({ success: true, data: account });
+}
+
 function logout(req, res) {
   res.clearCookie(env.jwt.cookieName, { ...COOKIE_OPTIONS, maxAge: undefined });
   res.json({ success: true, data: null });
@@ -76,4 +107,13 @@ async function me(req, res) {
   res.json({ success: true, data: { user } });
 }
 
-module.exports = { login, logout, me, signup, createAccount };
+module.exports = {
+  login,
+  logout,
+  me,
+  signup,
+  createAccount,
+  listAccounts,
+  updateAccount,
+  setAccountStatus,
+};
