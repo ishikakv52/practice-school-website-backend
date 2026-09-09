@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const pool = require("../config/db");
+const { pool } = require("./../config/db");
 const razorpay = require("./razorpay.service");
 
 async function createFeeOrder(studentId, amount, description = "School Fee") {
