@@ -44,8 +44,8 @@ const setClassFee = async (req, res, next) => {
     for (const student of studentsResult.rows) {
       for (const fee_month of months) {
         await client.query(
-          `INSERT INTO fees (student_id, amount, fee_month, status)
-           VALUES ($1, $2, $3, 'unpaid')
+          `INSERT INTO fees (student_id, amount, fee_month, status, payment_mode)
+           VALUES ($1, $2, $3, 'unpaid', NULL)
            ON CONFLICT (student_id, fee_month)
            DO UPDATE SET amount = $2
            WHERE fees.status IS DISTINCT FROM 'paid'`,

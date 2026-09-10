@@ -53,9 +53,10 @@ async function verifyAndMarkPaid({ razorpay_order_id, razorpay_payment_id, razor
 }
 
 async function getFeesByStudent(studentId) {
+  const currentMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
   const result = await pool.query(
-    `SELECT * FROM fees WHERE student_id = $1 AND fee_month IS NOT NULL ORDER BY fee_month ASC`,
-    [studentId]
+    `SELECT * FROM fees WHERE student_id = $1 AND fee_month IS NOT NULL AND fee_month <= $2 ORDER BY fee_month ASC`,
+    [studentId, currentMonth]
   );
   return result.rows;
 }
