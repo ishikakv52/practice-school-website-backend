@@ -24,7 +24,7 @@ async function findStudentByIdentity({ name, fatherName, admissionNumber }) {
 
 async function listStudentsByClass(classId) {
   const { rows } = await pool.query(
-    `SELECT id, name, class_id, roll_number, created_at
+    `SELECT id, name, class_id, roll_number, father_name, admission_number, created_at
      FROM students
      WHERE class_id = $1
      ORDER BY roll_number NULLS LAST, name`,
