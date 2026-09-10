@@ -1,3 +1,5 @@
+const admissionModel = require("../models/admission.model");
+const admissionModel = require("../models/admission.model");
 const admissionService = require("../services/admission.service");
 const { validateAdmission } = require("../utils/validators");
 const { ApiError } = require("../middleware/errorHandler");
@@ -75,4 +77,81 @@ async function updateStatus(req, res) {
   res.json({ success: true, data: updated });
 }
 
-module.exports = { submit, list, getById, updateStatus };
+module.exports = {
+  getPendingAdmissions,
+  approveAdmission,
+  rejectAdmission,
+  getPendingAdmissions,
+  approveAdmission,
+  rejectAdmission, submit, list, getById, updateStatus };
+async function getPendingAdmissions(req, res) {
+  try {
+    const admissions = await admissionModel.findPendingAdmissions();
+    res.json({ admissions });
+  } catch (err) {
+    console.error("getPendingAdmissions error:", err);
+    res.status(500).json({ error: "Failed to fetch pending admissions" });
+  }
+}
+
+async function approveAdmission(req, res) {
+  const { id } = req.params;
+  const { classId } = req.body;
+  if (!classId) return res.status(400).json({ error: "classId is required to approve admission" });
+  try {
+    const result = await admissionModel.approveAdmissionAndCreateStudent(id, classId, req.user.id);
+    res.json({ message: "Admission approved, student created", ...result });
+  } catch (err) {
+    console.error("approveAdmission error:", err);
+    res.status(400).json({ error: err.message || "Failed to approve admission" });
+  }
+}
+
+async function rejectAdmission(req, res) {
+  const { id } = req.params;
+  const { reason } = req.body;
+  try {
+    const rejected = await admissionModel.rejectAdmission(id, req.user.id, reason);
+    if (!rejected) return res.status(400).json({ error: "Admission not found or already reviewed" });
+    res.json({ message: "Admission rejected", admission: rejected });
+  } catch (err) {
+    console.error("rejectAdmission error:", err);
+    res.status(500).json({ error: "Failed to reject admission" });
+  }
+}
+
+async function getPendingAdmissions(req, res) {
+  try {
+    const admissions = await admissionModel.findPendingAdmissions();
+    res.json({ admissions });
+  } catch (err) {
+    console.error("getPendingAdmissions error:", err);
+    res.status(500).json({ error: "Failed to fetch pending admissions" });
+  }
+}
+
+async function approveAdmission(req, res) {
+  const { id } = req.params;
+  const { classId } = req.body;
+  if (!classId) return res.status(400).json({ error: "classId is required to approve admission" });
+  try {
+    const result = await admissionModel.approveAdmissionAndCreateStudent(id, classId, req.user.id);
+    res.json({ message: "Admission approved, student created", ...result });
+  } catch (err) {
+    console.error("approveAdmission error:", err);
+    res.status(400).json({ error: err.message || "Failed to approve admission" });
+  }
+}
+
+async function rejectAdmission(req, res) {
+  const { id } = req.params;
+  const { reason } = req.body;
+  try {
+    const rejected = await admissionModel.rejectAdmission(id, req.user.id, reason);
+    if (!rejected) return res.status(400).json({ error: "Admission not found or already reviewed" });
+    res.json({ message: "Admission rejected", admission: rejected });
+  } catch (err) {
+    console.error("rejectAdmission error:", err);
+    res.status(500).json({ error: "Failed to reject admission" });
+  }
+}

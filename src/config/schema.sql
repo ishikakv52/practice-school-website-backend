@@ -164,3 +164,11 @@ CREATE INDEX IF NOT EXISTS idx_fees_student ON fees(student_id);
 -- father_name + a unique admission_number to be looked up by parents.
 ALTER TABLE students ADD COLUMN IF NOT EXISTS father_name VARCHAR(150);
 ALTER TABLE students ADD COLUMN IF NOT EXISTS admission_number VARCHAR(30) UNIQUE;
+
+-- Admission approval + class allocation workflow
+ALTER TABLE admissions ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending';
+ALTER TABLE admissions ADD COLUMN IF NOT EXISTS assigned_class_id INTEGER REFERENCES classes(id);
+ALTER TABLE admissions ADD COLUMN IF NOT EXISTS reviewed_by INTEGER REFERENCES users(id);
+ALTER TABLE admissions ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP;
+ALTER TABLE admissions ADD COLUMN IF NOT EXISTS student_id INTEGER REFERENCES students(id);
+ALTER TABLE admissions ADD COLUMN IF NOT EXISTS reject_reason TEXT;

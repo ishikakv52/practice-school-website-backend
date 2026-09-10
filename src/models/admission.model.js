@@ -54,8 +54,70 @@ async function updateAdmissionStatus(id, status) {
 }
 
 module.exports = {
+  findPendingAdmissions,
+  findAdmissionById,
+  approveAdmissionAndCreateStudent,
+  rejectAdmission,
+  findPendingAdmissions,
+  findAdmissionById,
+  approveAdmissionAndCreateStudent,
+  rejectAdmission,
   createAdmission,
   listAdmissions,
   getAdmissionById,
   updateAdmissionStatus,
 };
+async function findPendingAdmissions() {
+  const result = await pool.query(
+    `SELECT * FROM admissions WHERE status = 'pending' ORDER BY created_at ASC`
+  );
+  return result.rows;
+}
+
+async function findAdmissionById(id) {
+  const result = await pool.query(`SELECT * FROM admissions WHERE id = $1`, [id]);
+  return result.rows[0] || null;
+}
+
+async function approveAdmissionAndCreateStudent(admissionId, classId, principalUserId) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const admissionResult = await client.query(
+      `SELECT * FROM admissions WHERE id = $1 AND status = 'pending'`,
+      [admissionId]
+    );
+    const admission = admissionResult.rows[0];
+    if (!admission) throw new Error("Admission not found or already reviewed");
+
+    const studentResult = await client.query(
+      `INSERT INTO students (name, class_id, father_name, admission_number)
+       VALUES ($1, $2, $3, $4) RETURNING id`,
+      [admission.student_name, classId, admission.father_name || null, admission.admission_number || null]
+    );
+    const newStudentId = studentResult.rows[0].id;
+
+    await client.query(
+      `UPDATE admissions SET status = 'approved', assigned_class_id = $1, reviewed_by = $2,
+       reviewed_at = NOW(), student_id = $3 WHERE id = $4`,
+      [classId, principalUserId, newStudentId, admissionId]
+    );
+
+    await client.query("COMMIT");
+    return { admissionId, studentId: newStudentId };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+async function rejectAdmission(admissionId, principalUserId, reason) {
+  const result = await pool.query(
+    `UPDATE admissions SET status = 'rejected', reviewed_by = $1, reviewed_at = NOW(), reject_reason = $2
+     WHERE id = $3 AND status = 'pending' RETURNING *`,
+    [principalUserId, reason || null, admissionId]
+  );
+  return result.rows[0] || null;
+}
