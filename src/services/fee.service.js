@@ -2,17 +2,31 @@ const crypto = require("crypto");
 const { pool } = require("./../config/db");
 const razorpay = require("./razorpay.service");
 
-async function createFeeOrder(studentId, amount, description = "School Fee") {
+// Attach a Razorpay order to an EXISTING pre-generated monthly fee row
+// (created earlier when Principal set the class fee), instead of inserting a new row.
+async function createFeeOrder(feeId, studentId) {
+  const feeCheck = await pool.query(
+    `SELECT * FROM fees WHERE id = $1 AND student_id = $2`,
+    [feeId, studentId]
+  );
+  const fee = feeCheck.rows[0];
+  if (!fee) {
+    throw new Error("Fee record not found");
+  }
+  if (fee.status === "paid") {
+    throw new Error("This fee is already paid");
+  }
+
   const order = await razorpay.orders.create({
-    amount: Math.round(amount * 100),
+    amount: Math.round(Number(fee.amount) * 100),
     currency: "INR",
-    receipt: `fee_${studentId}_${Date.now()}`,
+    receipt: `fee_${feeId}_${Date.now()}`,
   });
 
   const result = await pool.query(
-    `INSERT INTO fees (student_id, amount, description, status, razorpay_order_id)
-     VALUES ($1, $2, $3, 'pending', $4) RETURNING *`,
-    [studentId, amount, description, order.id]
+    `UPDATE fees SET razorpay_order_id = $1, status = 'pending', updated_at = NOW()
+     WHERE id = $2 RETURNING *`,
+    [order.id, feeId]
   );
 
   return { order, fee: result.rows[0] };
@@ -30,7 +44,7 @@ async function verifyAndMarkPaid({ razorpay_order_id, razorpay_payment_id, razor
   }
 
   const result = await pool.query(
-    `UPDATE fees SET status = 'paid', razorpay_payment_id = $1, paid_at = NOW(), updated_at = NOW()
+    `UPDATE fees SET status = 'paid', payment_mode = 'online', razorpay_payment_id = $1, paid_at = NOW(), updated_at = NOW()
      WHERE razorpay_order_id = $2 RETURNING *`,
     [razorpay_payment_id, razorpay_order_id]
   );
@@ -40,7 +54,7 @@ async function verifyAndMarkPaid({ razorpay_order_id, razorpay_payment_id, razor
 
 async function getFeesByStudent(studentId) {
   const result = await pool.query(
-    `SELECT * FROM fees WHERE student_id = $1 ORDER BY created_at DESC`,
+    `SELECT * FROM fees WHERE student_id = $1 AND fee_month IS NOT NULL ORDER BY fee_month ASC`,
     [studentId]
   );
   return result.rows;

@@ -5,11 +5,11 @@ const studentService = require("../services/student.service");
 
 async function createOrder(req, res) {
   try {
-    const { studentId, amount, description } = req.body;
-    if (!studentId || !amount) {
-      return res.status(400).json({ error: "studentId and amount are required" });
+    const { studentId, feeId } = req.body;
+    if (!studentId || !feeId) {
+      return res.status(400).json({ error: "studentId and feeId are required" });
     }
-    const { order, fee } = await feeService.createFeeOrder(studentId, amount, description);
+    const { order, fee } = await feeService.createFeeOrder(feeId, studentId);
     res.json({
       orderId: order.id,
       amount: order.amount,
@@ -19,7 +19,7 @@ async function createOrder(req, res) {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to create order" });
+    res.status(400).json({ error: err.message || "Failed to create order" });
   }
 }
 
