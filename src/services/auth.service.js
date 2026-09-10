@@ -39,7 +39,7 @@ async function signup({ name, email, password, role }) {
   return createAccountWithRole({ name, email, password, role });
 }
 
-const ADMIN_CREATABLE_ROLES = ['teacher', 'principal', 'staff'];
+const ADMIN_CREATABLE_ROLES = ['teacher', 'principal', 'staff', 'accountant'];
 
 async function adminCreateAccount({ name, email, password, role }) {
   if (!ADMIN_CREATABLE_ROLES.includes(role)) {
