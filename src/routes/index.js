@@ -25,6 +25,7 @@ router.use("/announcements", announcementsRoutes);
 router.use("/classes", classesRoutes);
 router.use("/students", studentsRoutes);
 router.use("/attendance", attendanceRoutes);
+router.use("/staff-attendance", require("./staffAttendance.routes"));
 router.use("/fees", require("./fees.routes"));
 router.use("/fees", require("./accountantFee.routes"));
 router.use("/fees", require("./principalFee.routes"));
