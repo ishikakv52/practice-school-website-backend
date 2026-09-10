@@ -87,11 +87,17 @@ async function approveAdmissionAndCreateStudent(admissionId, classId, principalU
     if (!admission) throw new Error("Admission not found or already reviewed");
 
     const studentResult = await client.query(
-      `INSERT INTO students (name, class_id, father_name, admission_number)
-       VALUES ($1, $2, $3, $4) RETURNING id`,
-      [admission.student_name, classId, admission.father_name || null, admission.admission_number || null]
+      `INSERT INTO students (name, class_id) VALUES ($1, $2) RETURNING id`,
+      [admission.student_name, classId]
     );
     const newStudentId = studentResult.rows[0].id;
+
+    // System auto-generates the admission number — parent's form never collects one
+    const admissionNumber = `ADM-${new Date().getFullYear()}-${String(newStudentId).padStart(4, "0")}`;
+    await client.query(
+      `UPDATE students SET admission_number = $1 WHERE id = $2`,
+      [admissionNumber, newStudentId]
+    );
 
     await client.query(
       `UPDATE admissions SET status = 'approved', assigned_class_id = $1, reviewed_by = $2,
@@ -100,7 +106,7 @@ async function approveAdmissionAndCreateStudent(admissionId, classId, principalU
     );
 
     await client.query("COMMIT");
-    return { admissionId, studentId: newStudentId };
+    return { admissionId, studentId: newStudentId, admissionNumber };
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;
