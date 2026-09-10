@@ -54,18 +54,14 @@ async function updateAdmissionStatus(id, status) {
 }
 
 module.exports = {
-  findPendingAdmissions,
-  findAdmissionById,
-  approveAdmissionAndCreateStudent,
-  rejectAdmission,
-  findPendingAdmissions,
-  findAdmissionById,
-  approveAdmissionAndCreateStudent,
-  rejectAdmission,
   createAdmission,
   listAdmissions,
   getAdmissionById,
   updateAdmissionStatus,
+  findPendingAdmissions,
+  findAdmissionById,
+  approveAdmissionAndCreateStudent,
+  rejectAdmission,
 };
 async function findPendingAdmissions() {
   const result = await pool.query(
