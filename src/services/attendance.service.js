@@ -67,6 +67,7 @@ async function getAttendance({ user, classId, date }) {
     studentId: s.id,
     name: s.name,
     rollNumber: s.roll_number,
+    admissionNumber: s.admission_number,
     status: byStudent.get(s.id)?.status || null,
   }));
 }
