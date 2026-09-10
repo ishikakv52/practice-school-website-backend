@@ -86,9 +86,12 @@ async function approveAdmissionAndCreateStudent(admissionId, classId, principalU
     const admission = admissionResult.rows[0];
     if (!admission) throw new Error("Admission not found or already reviewed");
 
+    // parent_name comes from the admission form (labelled "Parent/Guardian Name") —
+    // there is no dedicated father-name field, so we use it as father_name for the
+    // parent-side fee-verification lookup.
     const studentResult = await client.query(
-      `INSERT INTO students (name, class_id) VALUES ($1, $2) RETURNING id`,
-      [admission.student_name, classId]
+      `INSERT INTO students (name, class_id, father_name) VALUES ($1, $2, $3) RETURNING id`,
+      [admission.student_name, classId, admission.parent_name || null]
     );
     const newStudentId = studentResult.rows[0].id;
 
