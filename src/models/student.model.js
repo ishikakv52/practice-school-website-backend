@@ -1,13 +1,25 @@
 const { pool } = require("../config/db");
 
-async function createStudent({ name, classId, rollNumber }) {
+async function createStudent({ name, classId, rollNumber, fatherName, admissionNumber }) {
   const { rows } = await pool.query(
-    `INSERT INTO students (name, class_id, roll_number)
-     VALUES ($1, $2, $3)
-     RETURNING id, name, class_id, roll_number, created_at`,
-    [name, classId, rollNumber || null]
+    `INSERT INTO students (name, class_id, roll_number, father_name, admission_number)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id, name, class_id, roll_number, father_name, admission_number, created_at`,
+    [name, classId, rollNumber || null, fatherName || null, admissionNumber || null]
   );
   return rows[0];
+}
+
+async function findStudentByIdentity({ name, fatherName, admissionNumber }) {
+  const { rows } = await pool.query(
+    `SELECT id, name, class_id, father_name, admission_number
+     FROM students
+     WHERE LOWER(name) = LOWER($1)
+       AND LOWER(father_name) = LOWER($2)
+       AND admission_number = $3`,
+    [name.trim(), fatherName.trim(), admissionNumber.trim()]
+  );
+  return rows[0] || null;
 }
 
 async function listStudentsByClass(classId) {
@@ -39,4 +51,5 @@ module.exports = {
   listStudentsByClass,
   findStudentById,
   countStudentsMatchingClass,
+  findStudentByIdentity,
 };

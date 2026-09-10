@@ -3,12 +3,18 @@ const { ApiError } = require("../middleware/errorHandler");
 
 async function createStudent(req, res) {
   const name = req.body.name?.trim();
-  const { classId, rollNumber } = req.body;
+  const { classId, rollNumber, fatherName, admissionNumber } = req.body;
   if (!name || !classId) {
     throw new ApiError(400, "Student name and classId are required");
   }
 
-  const student = await studentService.adminCreateStudent({ name, classId, rollNumber });
+  const student = await studentService.adminCreateStudent({
+    name,
+    classId,
+    rollNumber,
+    fatherName,
+    admissionNumber,
+  });
   res.status(201).json({ success: true, data: student });
 }
 

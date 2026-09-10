@@ -1,4 +1,7 @@
 const feeService = require("../services/fee.service");
+const { ApiError } = require("../middleware/errorHandler");
+const { generateCaptcha, verifyCaptcha } = require("../services/captcha.service");
+const studentService = require("../services/student.service");
 
 async function createOrder(req, res) {
   try {
@@ -41,4 +44,33 @@ async function listFees(req, res) {
   }
 }
 
-module.exports = { createOrder, verifyPayment, listFees };
+async function getCaptcha(req, res) {
+  const { svg, token } = generateCaptcha();
+  res.json({ success: true, data: { svg, token } });
+}
+
+async function verifyStudent(req, res) {
+  const { studentName, fatherName, admissionNumber, captchaInput, captchaToken } = req.body;
+
+  if (!studentName || !fatherName || !admissionNumber || !captchaInput || !captchaToken) {
+    throw new ApiError(400, "All fields including captcha are required");
+  }
+
+  if (!verifyCaptcha(captchaToken, captchaInput)) {
+    throw new ApiError(400, "Invalid or expired captcha");
+  }
+
+  const student = await studentService.findStudentForVerification({
+    name: studentName,
+    fatherName,
+    admissionNumber,
+  });
+
+  if (!student) {
+    throw new ApiError(404, "No matching student record found");
+  }
+
+  res.json({ success: true, data: { studentId: student.id, studentName: student.name } });
+}
+
+module.exports = { createOrder, verifyPayment, listFees, getCaptcha, verifyStudent };

@@ -159,3 +159,8 @@ CREATE TABLE IF NOT EXISTS fees (
 );
 
 CREATE INDEX IF NOT EXISTS idx_fees_student ON fees(student_id);
+
+-- 2026-09: Parent dashboard fee-verification gate — students need
+-- father_name + a unique admission_number to be looked up by parents.
+ALTER TABLE students ADD COLUMN IF NOT EXISTS father_name VARCHAR(150);
+ALTER TABLE students ADD COLUMN IF NOT EXISTS admission_number VARCHAR(30) UNIQUE;
