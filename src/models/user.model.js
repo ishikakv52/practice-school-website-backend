@@ -23,6 +23,15 @@ async function listParentStudentEmails() {
   return rows.map((row) => row.email);
 }
 
+// Admin/Principal ko admission aur enquiry notifications bhejne ke liye
+async function listAdminPrincipalEmails() {
+  const { rows } = await pool.query(
+    `SELECT email FROM users
+     WHERE role IN ('admin', 'principal') AND email IS NOT NULL AND is_active IS DISTINCT FROM false`
+  );
+  return rows.map((row) => row.email);
+}
+
 async function createUser({ name, email, passwordHash, role = "admin" }) {
   const { rows } = await pool.query(
     `INSERT INTO users (name, email, password_hash, role)
@@ -82,6 +91,7 @@ module.exports = {
   findByEmail,
   findById,
   listParentStudentEmails,
+  listAdminPrincipalEmails,
   createUser,
   listStaffAccounts,
   findStaffAccountById,

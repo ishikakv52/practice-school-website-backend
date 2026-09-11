@@ -1,5 +1,6 @@
 const classModel = require("../models/class.model");
 const userModel = require("../models/user.model");
+const emailService = require("./email.service");
 const { ApiError } = require("../middleware/errorHandler");
 
 async function adminCreateClass({ name, section }) {
@@ -29,6 +30,18 @@ async function assignTeacherToClass({ teacherId, classId }) {
   }
 
   await classModel.assignTeacher(teacherId, classId);
+
+  // Teacher ko notify — fire-and-forget, response ko block nahi karega
+  if (teacher.email) {
+    emailService
+      .sendClassAssigned({
+        to: teacher.email,
+        teacherName: teacher.name,
+        className: `${cls.name} - ${cls.section}`,
+      })
+      .catch((err) => console.error("Class assignment email failed:", err.message));
+  }
+
   return classModel.listClasses();
 }
 

@@ -6,6 +6,7 @@
 
 const nodemailer = require("nodemailer");
 const env = require("../config/env");
+const userModel = require("../models/user.model");
 
 let transporter = null;
 
@@ -54,6 +55,16 @@ async function sendMail({ to, subject, html }) {
   }
 }
 
+// Admin + Principal accounts (from DB) ko ek saath notify karta hai.
+async function sendAdminNotification({ subject, html }) {
+  const emails = await userModel.listAdminPrincipalEmails();
+  if (emails.length === 0) {
+    console.log(`[email] No admin/principal accounts to notify — would send: "${subject}"`);
+    return { sent: false, reason: "no_recipients" };
+  }
+  return sendMail({ to: emails.join(","), subject, html });
+}
+
 async function sendAdmissionConfirmation(admission) {
   return sendMail({
     to: admission.email,
@@ -64,6 +75,50 @@ async function sendAdmissionConfirmation(admission) {
       <strong>${admission.studentName}</strong> for
       <strong>${admission.gradeApplied}</strong>. Our admissions team will
       review it and contact you shortly.</p>
+      <p>— Sunrise Public School</p>
+    `,
+  });
+}
+
+// Parent ko tab bhejta hai jab principal admission approve kar deta hai
+// aur student record ban jaata hai.
+async function sendAdmissionApproved({ to, parentName, studentName, admissionNumber, className }) {
+  return sendMail({
+    to,
+    subject: `Admission approved — ${studentName}`,
+    html: `
+      <p>Dear ${parentName},</p>
+      <p>We're happy to confirm that <strong>${studentName}</strong>'s admission has been
+      approved for <strong>${className}</strong>.</p>
+      <p>Admission Number: <strong>${admissionNumber}</strong></p>
+      <p>— Sunrise Public School</p>
+    `,
+  });
+}
+
+// Teacher ko tab bhejta hai jab use ek class assign ki jaati hai.
+async function sendClassAssigned({ to, teacherName, className }) {
+  return sendMail({
+    to,
+    subject: `You've been assigned to ${className}`,
+    html: `
+      <p>Dear ${teacherName},</p>
+      <p>You have been assigned as a teacher for <strong>${className}</strong>.</p>
+      <p>— Sunrise Public School</p>
+    `,
+  });
+}
+
+// Teacher ko tab bhejta hai jab uski class mein naya student add hota hai
+// (chahe admission approval se ho ya admin dwara directly add kiya gaya ho).
+async function sendNewStudentAdded({ to, teacherName, studentName, className }) {
+  return sendMail({
+    to,
+    subject: `New student added to ${className}`,
+    html: `
+      <p>Dear ${teacherName},</p>
+      <p><strong>${studentName}</strong> has been added to your class,
+      <strong>${className}</strong>.</p>
       <p>— Sunrise Public School</p>
     `,
   });
@@ -97,7 +152,11 @@ async function sendAnnouncementEmail({ to, title, message }) {
 
 module.exports = {
   sendMail,
+  sendAdminNotification,
   sendAdmissionConfirmation,
+  sendAdmissionApproved,
+  sendClassAssigned,
+  sendNewStudentAdded,
   sendAnnouncementEmail,
   sendOtpEmail,
 };

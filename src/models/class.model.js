@@ -68,6 +68,18 @@ async function isTeacherAssignedToClass(teacherId, classId) {
   return rows.length > 0;
 }
 
+// Us class ke saare assigned teachers (naye student ki notification bhejne ke liye)
+async function listTeachersForClass(classId) {
+  const { rows } = await pool.query(
+    `SELECT u.id, u.name, u.email
+     FROM teacher_classes tc
+     JOIN users u ON u.id = tc.teacher_id
+     WHERE tc.class_id = $1 AND u.email IS NOT NULL`,
+    [classId]
+  );
+  return rows;
+}
+
 module.exports = {
   createClass,
   listClasses,
@@ -76,4 +88,5 @@ module.exports = {
   unassignTeacher,
   listClassesForTeacher,
   isTeacherAssignedToClass,
+  listTeachersForClass,
 };

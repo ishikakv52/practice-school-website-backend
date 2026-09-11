@@ -1,5 +1,7 @@
 const admissionModel = require("../models/admission.model");
 const admissionService = require("../services/admission.service");
+const classModel = require("../models/class.model");
+const emailService = require("../services/email.service");
 const { validateAdmission } = require("../utils/validators");
 const { ApiError } = require("../middleware/errorHandler");
 const { notifyAdmins } = require("../services/pushService");
@@ -29,9 +31,8 @@ async function submit(req, res) {
     `${studentName} — Grade ${gradeApplied}`
   ).catch((err) => console.error("Push notify failed:", err));
 
-  // Parent confirmation email admissionService.submitAdmission() ke andar
-  // hi fire-and-forget bhej di jaati hai — yahan dubara nahi bhejni,
-  // warna parent ko email 2 baar chali jaati thi.
+  // Admin/Principal + parent confirmation emails admissionService.submitAdmission()
+  // ke andar hi fire-and-forget bhej di jaati hain — yahan dubara nahi bhejni.
 
   res.status(201).json({
     success: true,
@@ -88,12 +89,54 @@ async function approveAdmission(req, res) {
   const { classId } = req.body;
   if (!classId) return res.status(400).json({ error: "classId is required to approve admission" });
   try {
+    // Approve se pehle admission details nikal lo (email/parentName/studentName
+    // approve hone ke baad bhi admissions row me hi rehte hain, but yahin le lete hain)
+    const admission = await admissionModel.findAdmissionById(id);
     const result = await admissionModel.approveAdmissionAndCreateStudent(id, classId, req.user.id);
+
+    // Parent + assigned teacher(s) ko notify — fire-and-forget, response ko block nahi karega
+    notifyApprovalStakeholders({ admission, classId, admissionNumber: result.admissionNumber }).catch(
+      (err) => console.error("Approval notification failed:", err.message)
+    );
+
     res.json({ message: "Admission approved, student created", ...result });
   } catch (err) {
     console.error("approveAdmission error:", err);
     res.status(400).json({ error: err.message || "Failed to approve admission" });
   }
+}
+
+async function notifyApprovalStakeholders({ admission, classId, admissionNumber }) {
+  if (!admission) return;
+
+  const cls = await classModel.findClassById(classId);
+  const className = cls ? `${cls.name} - ${cls.section}` : "";
+
+  // Parent ko admission-approved confirmation
+  if (admission.email) {
+    emailService
+      .sendAdmissionApproved({
+        to: admission.email,
+        parentName: admission.parent_name,
+        studentName: admission.student_name,
+        admissionNumber,
+        className,
+      })
+      .catch((err) => console.error("Parent approval email failed:", err.message));
+  }
+
+  // Us class ke saare assigned teacher(s) ko naye student ki notification
+  const teachers = await classModel.listTeachersForClass(classId);
+  teachers.forEach((teacher) => {
+    emailService
+      .sendNewStudentAdded({
+        to: teacher.email,
+        teacherName: teacher.name,
+        studentName: admission.student_name,
+        className,
+      })
+      .catch((err) => console.error("Teacher new-student email failed:", err.message));
+  });
 }
 
 async function rejectAdmission(req, res) {
