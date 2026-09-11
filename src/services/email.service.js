@@ -1,56 +1,47 @@
-// Email notifications via SMTP (nodemailer) — works with Gmail SMTP,
-// SendGrid SMTP relay, Brevo SMTP relay, or any standard SMTP provider,
-// so you don't need to hard-code one vendor's SDK. If SMTP isn't
-// configured yet, this logs instead of throwing, so forms still work
-// end-to-end (saved to MySQL) before you've set up an email provider.
+// Email notifications via Brevo's HTTP API (not SMTP — Render's free tier
+// blocks outbound SMTP ports, so we send over HTTPS instead). Fails
+// gracefully (logs instead of throwing) if BREVO_API_KEY isn't configured,
+// so forms still work end-to-end before email is set up.
 
-const nodemailer = require("nodemailer");
+const brevo = require("@getbrevo/brevo");
 const env = require("../config/env");
 const userModel = require("../models/user.model");
 
-let transporter = null;
+let apiInstance = null;
 
-function getTransporter() {
-  if (transporter) return transporter;
-  if (!env.email.host || !env.email.user || !env.email.pass) return null;
+function getClient() {
+  if (apiInstance) return apiInstance;
+  if (!env.email.brevoApiKey) return null;
 
-  transporter = nodemailer.createTransport({
-    host: env.email.host,
-    port: env.email.port,
-    secure: env.email.port === 465,
-    auth: { user: env.email.user, pass: env.email.pass },
-    // Without these, a slow/unreachable SMTP host can hang the whole
-    // request for minutes (observed: ~4 min). Fail fast instead.
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-  });
-  return transporter;
+  apiInstance = new brevo.TransactionalEmailsApi();
+  apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, env.email.brevoApiKey);
+  return apiInstance;
 }
 
 /**
- * Sends an email if SMTP is configured; otherwise logs what would have
+ * Sends an email if Brevo is configured; otherwise logs what would have
  * been sent. Never throws — a notification failure should not fail the
- * form submission itself (the record is already saved in MySQL).
+ * form submission itself (the record is already saved in the DB).
  */
 async function sendMail({ to, subject, html }) {
-  const t = getTransporter();
+  const client = getClient();
 
-  if (!t) {
-    console.log(`[email] SMTP not configured — would send to ${to}: "${subject}"`);
+  if (!client) {
+    console.log(`[email] Brevo not configured — would send to ${to}: "${subject}"`);
     return { sent: false, reason: "not_configured" };
   }
 
+  const message = new brevo.SendSmtpEmail();
+  message.sender = { email: env.email.from || env.email.user, name: "Nexa Hub School" };
+  message.to = to.split(",").map((email) => ({ email: email.trim() }));
+  message.subject = subject;
+  message.htmlContent = html;
+
   try {
-    await t.sendMail({
-      from: env.email.from || env.email.user,
-      to,
-      subject,
-      html,
-    });
+    await client.sendTransacEmail(message);
     return { sent: true };
   } catch (err) {
-    console.error("[email] Failed to send:", err.message);
+    console.error("[email] Failed to send:", err.response?.body || err.message);
     return { sent: false, reason: "send_failed" };
   }
 }

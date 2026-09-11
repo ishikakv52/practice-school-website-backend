@@ -39,6 +39,7 @@ const env = {
   // SMTP is the "Nodemailer with SMTP" option from the requirements doc —
   // works with Gmail/SendGrid/Brevo SMTP relays without a vendor SDK.
   email: {
+    brevoApiKey: process.env.BREVO_API_KEY || null,
     host: process.env.SMTP_HOST || null,
     port: parseInt(process.env.SMTP_PORT || "587", 10),
     user: process.env.SMTP_USER || null,
