@@ -2,20 +2,20 @@
 // blocks outbound SMTP ports, so we send over HTTPS instead). Fails
 // gracefully (logs instead of throwing) if BREVO_API_KEY isn't configured,
 // so forms still work end-to-end before email is set up.
+// Uses @getbrevo/brevo v6.x (BrevoClient) API.
 
-const brevo = require("@getbrevo/brevo");
+const { BrevoClient } = require("@getbrevo/brevo");
 const env = require("../config/env");
 const userModel = require("../models/user.model");
 
-let apiInstance = null;
+let client = null;
 
 function getClient() {
-  if (apiInstance) return apiInstance;
+  if (client) return client;
   if (!env.email.brevoApiKey) return null;
 
-  apiInstance = new brevo.TransactionalEmailsApi();
-  apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, env.email.brevoApiKey);
-  return apiInstance;
+  client = new BrevoClient({ apiKey: env.email.brevoApiKey });
+  return client;
 }
 
 /**
@@ -24,24 +24,23 @@ function getClient() {
  * form submission itself (the record is already saved in the DB).
  */
 async function sendMail({ to, subject, html }) {
-  const client = getClient();
+  const brevo = getClient();
 
-  if (!client) {
+  if (!brevo) {
     console.log(`[email] Brevo not configured — would send to ${to}: "${subject}"`);
     return { sent: false, reason: "not_configured" };
   }
 
-  const message = new brevo.SendSmtpEmail();
-  message.sender = { email: env.email.from || env.email.user, name: "Nexa Hub School" };
-  message.to = to.split(",").map((email) => ({ email: email.trim() }));
-  message.subject = subject;
-  message.htmlContent = html;
-
   try {
-    await client.sendTransacEmail(message);
+    await brevo.transactionalEmails.sendTransacEmail({
+      sender: { name: "Nexa Hub School", email: env.email.from || env.email.user },
+      to: to.split(",").map((email) => ({ email: email.trim() })),
+      subject,
+      htmlContent: html,
+    });
     return { sent: true };
   } catch (err) {
-    console.error("[email] Failed to send:", err.response?.body || err.message);
+    console.error("[email] Failed to send:", err.message || err);
     return { sent: false, reason: "send_failed" };
   }
 }
