@@ -262,6 +262,69 @@ async function sendAnnouncementEmail({ to, title, message }) {
   });
 }
 
+// Parent ko bhejta hai jab fee payment successful ho jaaye.
+async function sendFeePaymentSuccess({
+  to,
+  parentName,
+  studentName,
+  admissionNumber,
+  className,
+  feeMonth,
+  amount,
+}) {
+  return sendMail({
+    to,
+    subject: `Fee Payment Successful — ${studentName}`,
+    html: layout({
+      title: "Fee Payment Successful",
+      bodyHtml: `
+        <p>Dear ${parentName},</p>
+        <p>We have successfully received the fee payment for
+        <strong>${studentName}</strong>.</p>
+        ${detailsTable([
+          ["Admission Number", admissionNumber],
+          ["Student Name", studentName],
+          ["Class", className],
+          ["Fee Month", feeMonth],
+          ["Amount Paid", amount ? `₹${amount}` : undefined],
+        ])}
+      `,
+    }),
+  });
+}
+
+// Parent ko bhejta hai jab fee payment fail ho jaaye.
+async function sendFeePaymentFailed({
+  to,
+  parentName,
+  studentName,
+  admissionNumber,
+  className,
+  feeMonth,
+  reason,
+}) {
+  return sendMail({
+    to,
+    subject: `Fee Payment Failed — ${studentName}`,
+    html: layout({
+      title: "Fee Payment Failed",
+      bodyHtml: `
+        <p>Dear ${parentName},</p>
+        <p>Your fee payment attempt for <strong>${studentName}</strong> could
+        not be completed.</p>
+        ${detailsTable([
+          ["Admission Number", admissionNumber],
+          ["Student Name", studentName],
+          ["Class", className],
+          ["Fee Month", feeMonth],
+          ["Reason", reason],
+        ])}
+        <p>Please try again from the Parent Dashboard.</p>
+      `,
+    }),
+  });
+}
+
 async function sendEnquiryConfirmation({ to, name, subject, message, submittedAt }) {
   return sendMail({
     to,
@@ -294,4 +357,6 @@ module.exports = {
   sendAnnouncementEmail,
   sendOtpEmail,
   sendEnquiryConfirmation,
+  sendFeePaymentSuccess,
+  sendFeePaymentFailed,
 };

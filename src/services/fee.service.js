@@ -49,11 +49,32 @@ async function verifyAndMarkPaid({ razorpay_order_id, razorpay_payment_id, razor
     [razorpay_payment_id, razorpay_order_id]
   );
 
-  return result.rows[0];
+  const fee = result.rows[0];
+  if (!fee) return null;
+
+  // Email ke liye student + class + admission_number chahiye, isliye
+  // joined detail wapas bhejte hain instead of plain fees row.
+  return getFeeWithDetails(fee.id);
 }
 
 async function getFeeByOrderId(orderId) {
   const { rows } = await pool.query(`SELECT * FROM fees WHERE razorpay_order_id = $1`, [orderId]);
+  return rows[0] || null;
+}
+
+// fees + students + classes ko join karke ek hi row mein sab email-friendly
+// detail deta hai (student name, admission number, class). Success aur
+// failure dono email flows isi ko use karte hain.
+async function getFeeWithDetails(feeId) {
+  const { rows } = await pool.query(
+    `SELECT f.*, s.name AS student_name, s.admission_number,
+            c.name AS class_name, c.section AS class_section
+     FROM fees f
+     JOIN students s ON s.id = f.student_id
+     JOIN classes c ON c.id = s.class_id
+     WHERE f.id = $1`,
+    [feeId]
+  );
   return rows[0] || null;
 }
 
@@ -66,4 +87,4 @@ async function getFeesByStudent(studentId) {
   return result.rows;
 }
 
-module.exports = { createFeeOrder, verifyAndMarkPaid, getFeeByOrderId, getFeesByStudent };
+module.exports = { createFeeOrder, verifyAndMarkPaid, getFeeByOrderId, getFeeWithDetails, getFeesByStudent };
