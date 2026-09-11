@@ -4,12 +4,15 @@ const env = require("../config/env");
 
 async function submitEnquiry(data) {
   const enquiry = await enquiryModel.createEnquiry(data);
+  const submittedAt = new Date().toLocaleString("en-IN");
 
-  const notifyHtml = `
-    <p><strong>From:</strong> ${enquiry.name} (${enquiry.email})</p>
-    <p><strong>Subject:</strong> ${enquiry.subject}</p>
-    <p>${enquiry.message}</p>
-  `;
+  const notifyHtml = emailService.buildEnquiryNotificationHtml({
+    name: enquiry.name,
+    email: enquiry.email,
+    subject: enquiry.subject,
+    message: enquiry.message,
+    submittedAt,
+  });
 
   // Emails are fire-and-forget — a slow/failed SMTP send should never
   // delay or fail the API response. The enquiry is already saved.
@@ -34,15 +37,12 @@ async function submitEnquiry(data) {
   }
 
   emailService
-    .sendMail({
+    .sendEnquiryConfirmation({
       to: enquiry.email,
-      subject: "We've received your enquiry — Sunrise Public School",
-      html: `
-        <p>Dear ${enquiry.name},</p>
-        <p>Thank you for reaching out. We've received your enquiry regarding
-        "${enquiry.subject}" and will get back to you shortly.</p>
-        <p>— Sunrise Public School</p>
-      `,
+      name: enquiry.name,
+      subject: enquiry.subject,
+      message: enquiry.message,
+      submittedAt,
     })
     .catch((err) => console.error("Enquiry confirmation email failed:", err.message));
 

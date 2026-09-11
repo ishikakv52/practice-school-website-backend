@@ -4,14 +4,23 @@ const env = require("../config/env");
 
 async function submitAdmission(data) {
   const admission = await admissionModel.createAdmission(data);
+  const submittedAt = new Date().toLocaleString("en-IN");
 
-  const notifyHtml = `
-    <p><strong>Student:</strong> ${admission.studentName} (DOB: ${admission.dateOfBirth})</p>
-    <p><strong>Grade applied for:</strong> ${admission.gradeApplied}</p>
-    <p><strong>Parent/Guardian:</strong> ${admission.parentName}</p>
-    <p><strong>Contact:</strong> ${admission.phone} / ${admission.email}</p>
-    ${admission.message ? `<p><strong>Message:</strong> ${admission.message}</p>` : ""}
-  `;
+  // actionLink points at the admin/principal admissions list — same link for
+  // both for now; role-based read-only vs approve/reject links would need
+  // sendAdminNotification to send two separate emails instead of one shared
+  // one, which is a bigger change than "just the templates".
+  const notifyHtml = emailService.buildAdmissionNotificationHtml({
+    studentName: admission.studentName,
+    gradeApplied: admission.gradeApplied,
+    parentName: admission.parentName,
+    phone: admission.phone,
+    email: admission.email,
+    message: admission.message,
+    submittedAt,
+    actionLink: env.email.adminPortalUrl ? `${env.email.adminPortalUrl}/admissions` : undefined,
+    actionLabel: "View Application",
+  });
 
   // Emails are fire-and-forget — a slow/failed SMTP send should never
   // delay or fail the API response. The admission is already saved.
