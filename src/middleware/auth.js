@@ -9,7 +9,9 @@ const { ApiError } = require("./errorHandler");
  * by injected/third-party JS.
  */
 function requireAuth(req, res, next) {
-  const token = req.cookies?.[env.jwt.cookieName];
+  const authHeader = req.headers.authorization;
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const token = bearerToken || req.cookies?.[env.jwt.cookieName];
   if (!token) {
     return next(new ApiError(401, "Not authenticated"));
   }

@@ -20,7 +20,7 @@ async function login(req, res) {
   const { token, user } = await authService.login(email, password);
 
   res.cookie(env.jwt.cookieName, token, COOKIE_OPTIONS);
-  res.json({ success: true, data: { user } });
+  res.json({ success: true, data: { user, token } });
 }
 
 async function signup(req, res) {
@@ -41,7 +41,7 @@ async function signup(req, res) {
   const user = await authService.signup({ name, email, password, role });
   const { token } = await authService.login(email, password);
   res.cookie(env.jwt.cookieName, token, COOKIE_OPTIONS);
-  res.status(201).json({ success: true, data: { user } });
+  res.status(201).json({ success: true, data: { user, token } });
 }
 
 async function createAccount(req, res) {
