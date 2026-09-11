@@ -18,6 +18,11 @@ function getTransporter() {
     port: env.email.port,
     secure: env.email.port === 465,
     auth: { user: env.email.user, pass: env.email.pass },
+    // Without these, a slow/unreachable SMTP host can hang the whole
+    // request for minutes (observed: ~4 min). Fail fast instead.
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
   return transporter;
 }
