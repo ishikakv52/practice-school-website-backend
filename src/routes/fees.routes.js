@@ -6,6 +6,7 @@ const { requireAuth, requireRole } = require("../middleware/auth");
 
 router.post("/create-order", requireAuth, feeController.createOrder);
 router.post("/verify", requireAuth, feeController.verifyPayment);
+router.post("/payment-failed", requireAuth, feeController.paymentFailed);
 router.get("/student/:studentId", requireAuth, feeController.listFees);
 
 router.get("/captcha", requireAuth, requireRole("parent"), asyncHandler(feeController.getCaptcha));

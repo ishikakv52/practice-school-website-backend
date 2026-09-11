@@ -32,6 +32,15 @@ async function listAdminPrincipalEmails() {
   return rows.map((row) => row.email);
 }
 
+// Accountant(s) ko fee-paid notification bhejne ke liye
+async function listAccountantEmails() {
+  const { rows } = await pool.query(
+    `SELECT email FROM users
+     WHERE role = 'accountant' AND email IS NOT NULL AND is_active IS DISTINCT FROM false`
+  );
+  return rows.map((row) => row.email);
+}
+
 async function createUser({ name, email, passwordHash, role = "admin" }) {
   const { rows } = await pool.query(
     `INSERT INTO users (name, email, password_hash, role)
@@ -92,6 +101,7 @@ module.exports = {
   findById,
   listParentStudentEmails,
   listAdminPrincipalEmails,
+  listAccountantEmails,
   createUser,
   listStaffAccounts,
   findStaffAccountById,

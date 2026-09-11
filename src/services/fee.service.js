@@ -52,6 +52,11 @@ async function verifyAndMarkPaid({ razorpay_order_id, razorpay_payment_id, razor
   return result.rows[0];
 }
 
+async function getFeeByOrderId(orderId) {
+  const { rows } = await pool.query(`SELECT * FROM fees WHERE razorpay_order_id = $1`, [orderId]);
+  return rows[0] || null;
+}
+
 async function getFeesByStudent(studentId) {
   const currentMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
   const result = await pool.query(
@@ -61,4 +66,4 @@ async function getFeesByStudent(studentId) {
   return result.rows;
 }
 
-module.exports = { createFeeOrder, verifyAndMarkPaid, getFeesByStudent };
+module.exports = { createFeeOrder, verifyAndMarkPaid, getFeeByOrderId, getFeesByStudent };
