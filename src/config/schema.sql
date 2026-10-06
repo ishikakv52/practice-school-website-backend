@@ -172,3 +172,75 @@ ALTER TABLE admissions ADD COLUMN IF NOT EXISTS reviewed_by INTEGER REFERENCES u
 ALTER TABLE admissions ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP;
 ALTER TABLE admissions ADD COLUMN IF NOT EXISTS student_id INTEGER REFERENCES students(id);
 ALTER TABLE admissions ADD COLUMN IF NOT EXISTS reject_reason TEXT;
+
+
+-- =====================================================================
+-- Extras that were applied manually in the Aiven SQL editor and were
+-- NOT in the original schema.sql. Inferred from the backend code.
+-- All idempotent, safe to re-run.
+-- =====================================================================
+
+-- 'accountant' role is used by auth.service.js (ADMIN_CREATABLE_ROLES) and
+-- the fee routes, but was missing from the CHECK constraint above.
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check
+  CHECK (role IN ('admin', 'teacher', 'principal', 'staff', 'accountant', 'student', 'parent'));
+
+-- Admissions status: code uses 'approved' (original CHECK only allowed 'accepted',
+-- which made Approve fail with a constraint error).
+ALTER TABLE admissions DROP CONSTRAINT IF EXISTS admissions_status_check;
+ALTER TABLE admissions ADD CONSTRAINT admissions_status_check
+  CHECK (status IN ('pending', 'under_review', 'accepted', 'approved', 'rejected'));
+
+-- Monthly fee model (principalFee / accountantFee / fee.service)
+ALTER TABLE fees ADD COLUMN IF NOT EXISTS fee_month VARCHAR(7);      -- 'YYYY-MM'
+ALTER TABLE fees ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(20);  -- 'online' / 'cash' / ...
+ALTER TABLE fees ADD COLUMN IF NOT EXISTS marked_by INTEGER REFERENCES users(id);
+-- Needed by ON CONFLICT (student_id, fee_month) in the controllers
+CREATE UNIQUE INDEX IF NOT EXISTS uq_fees_student_month ON fees (student_id, fee_month);
+CREATE INDEX IF NOT EXISTS idx_fees_order ON fees (razorpay_order_id);
+
+-- Principal sets monthly fee per class per academic year
+CREATE TABLE IF NOT EXISTS class_fees (
+  id SERIAL PRIMARY KEY,
+  class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  academic_year VARCHAR(9) NOT NULL,           -- e.g. '2026-2027'
+  amount NUMERIC(10,2) NOT NULL,
+  created_by INTEGER REFERENCES users(id),
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (class_id, academic_year)
+);
+
+-- Teacher / staff self check-in / check-out
+CREATE TABLE IF NOT EXISTS staff_attendance (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  check_in_time TIMESTAMP,
+  check_out_time TIMESTAMP,
+  status VARCHAR(20) NOT NULL DEFAULT 'half_day'
+    CHECK (status IN ('full_day', 'half_day', 'absent')),
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, date)
+);
+
+-- Announcements (admin sends, parents/students get push)
+CREATE TABLE IF NOT EXISTS announcements (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_announcements_created_at ON announcements (created_at);
+
+-- Web Push subscriptions
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id SERIAL PRIMARY KEY,
+  endpoint TEXT NOT NULL UNIQUE,
+  keys_p256dh TEXT NOT NULL,
+  keys_auth TEXT NOT NULL,
+  user_type VARCHAR(20) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
